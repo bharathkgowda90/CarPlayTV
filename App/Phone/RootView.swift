@@ -10,6 +10,7 @@ struct RootView: View {
         TabView {
             Tab("Home", systemImage: "play.tv") { HomeView() }
             Tab("Search", systemImage: "magnifyingglass") { SearchView() }
+            Tab("Cast", systemImage: "rectangle.on.rectangle") { CastView() }
             Tab("Sources", systemImage: "list.bullet.rectangle") { SourcesView() }
             Tab("Settings", systemImage: "gearshape") { SettingsView() }
         }
@@ -24,6 +25,9 @@ struct RootView: View {
         .sheet(isPresented: .constant(!model.settings.hasAcceptedSafetyNotice)) { SafetyNoticeView() }
         .task { await model.reloadAll() }
         .onOpenURL(perform: open)
+        .onReceive(NotificationCenter.default.publisher(for: .carPlayTVStopCasting)) { _ in
+            model.stopCasting()
+        }
         .alert("Couldn't open file", isPresented: .constant(openError != nil)) {
             Button("OK") { openError = nil }
         } message: {

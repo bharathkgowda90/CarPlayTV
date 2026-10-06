@@ -1,3 +1,4 @@
+import MirrorKit
 import Observation
 import PlaybackKit
 import UIKit
@@ -8,6 +9,7 @@ import UIKit
 final class VideoCanvasViewController: UIViewController {
     private let model: AppModel
     private let videoHost = VideoHostView(priority: 10)
+    private let mirrorView = MirrorDisplayView()
     private let messageLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .large)
 
@@ -28,6 +30,12 @@ final class VideoCanvasViewController: UIViewController {
         videoHost.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(videoHost)
         model.player.register(videoHost)
+
+        mirrorView.frame = view.bounds
+        mirrorView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        mirrorView.isHidden = true
+        view.addSubview(mirrorView)
+        model.mirror.register(mirrorView)
 
         messageLabel.textColor = .white
         messageLabel.font = .systemFont(ofSize: 22, weight: .semibold)
@@ -54,6 +62,7 @@ final class VideoCanvasViewController: UIViewController {
 
     func tearDown() {
         model.player.unregister(videoHost)
+        model.mirror.unregister(mirrorView)
     }
 
     private func observeState() {
@@ -67,12 +76,16 @@ final class VideoCanvasViewController: UIViewController {
     private func render() {
         let player = model.player
         let videoAllowed = model.driveMonitor.isVideoAllowed
+        let mirroring = model.isMirroring
         // Hiding the surface stops video on the car screen; the player keeps playing audio.
-        videoHost.isHidden = !videoAllowed
+        videoHost.isHidden = !videoAllowed || mirroring
+        mirrorView.isHidden = !videoAllowed || !mirroring
 
         let message: String?
         if !videoAllowed {
             message = "Video paused while driving.\nAudio keeps playing."
+        } else if mirroring {
+            message = nil
         } else if let error = player.errorMessage {
             message = error
         } else if player.currentChannel == nil {

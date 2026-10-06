@@ -33,6 +33,12 @@ targets:
         product: SafetyKit
       - package: CarPlayTVKit
         product: LibraryKit
+      - package: CarPlayTVKit
+        product: ReceiverKit
+      - package: CarPlayTVKit
+        product: MirrorKit
+      - target: CarPlayTVWidgets
+      - target: BroadcastExtension
       - package: VLCKitSPM
         product: VLCKitSPM
     settings:
@@ -46,6 +52,8 @@ targets:
         # CarPlay navigation entitlement: gives the app a drawable CPWindow on the car screen.
         # Works in the Xcode CarPlay Simulator; on a real device Apple must grant it to the team.
         com.apple.developer.carplay-maps: true
+        # Needed to answer SSDP discovery for Receive (DLNA). Apple must grant it.
+        com.apple.developer.networking.multicast: true
     info:
       path: App/Info.plist
       properties:
@@ -56,6 +64,7 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes: [audio]
+        NSSupportsLiveActivities: true
         NSLocationWhenInUseUsageDescription: CarPlayTV uses your speed, on this iPhone only, to pause video on the car display while the car is moving.
         NSLocalNetworkUsageDescription: CarPlayTV connects to media servers on your network and lets other apps cast video to it.
         NSPhotoLibraryUsageDescription: CarPlayTV imports the videos you choose so you can play them offline.
@@ -81,3 +90,44 @@ targets:
               - UISceneConfigurationName: CarPlay
                 UISceneClassName: CPTemplateApplicationScene
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
+
+  CarPlayTVWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widgets
+      - App/Shared/CastActivityAttributes.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bharathkgowda.carplaytv.widgets
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        SKIP_INSTALL: YES
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: CarPlayTV
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+  BroadcastExtension:
+    type: app-extension
+    platform: iOS
+    sources: [BroadcastExtension]
+    dependencies:
+      - package: CarPlayTVKit
+        product: MirrorKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bharathkgowda.carplaytv.broadcast
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        SKIP_INSTALL: YES
+    info:
+      path: BroadcastExtension/Info.plist
+      properties:
+        CFBundleDisplayName: CarPlayTV Mirror
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.broadcast-services-upload
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SampleHandler
+          RPBroadcastProcessMode: RPBroadcastProcessModeSampleBuffer

@@ -33,6 +33,9 @@ public protocol PlaybackEngine: AnyObject {
     func seek(to seconds: Double)
     func stop()
 
+    /// 0...1
+    func setVolume(_ volume: Float)
+
     func selectAudioTrack(id: String)
     /// nil turns embedded subtitles off.
     func selectSubtitleTrack(id: String?)

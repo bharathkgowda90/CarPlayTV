@@ -34,6 +34,8 @@ public final class PlayerController {
     /// Always use the software decoder when one is available.
     public var preferSoftwareDecoder = false
     public private(set) var videoGravity: AVLayerVideoGravity = .resizeAspect
+    /// App-level volume (0...1), used by cast controllers.
+    public private(set) var volume: Float = 1
 
     /// Supplies the VLCKit engine (lives in the app target).
     @ObservationIgnored public var softwareEngineFactory: (@MainActor () -> PlaybackEngine)?
@@ -147,6 +149,11 @@ public final class PlayerController {
         nowPlaying.clear()
     }
 
+    public func setVolume(_ volume: Float) {
+        self.volume = min(1, max(0, volume))
+        engine.setVolume(self.volume)
+    }
+
     // MARK: - Tracks & subtitles
 
     public func selectAudioTrack(id: String) { engine.selectAudioTrack(id: id) }
@@ -255,6 +262,7 @@ public final class PlayerController {
         currentTime = startAt ?? 0
         duration = nil
         switchEngine(toSoftware: software)
+        engine.setVolume(volume)
         engine.load(url: url, startAt: startAt)
         syncTracks()
         updateNowPlaying(force: true)

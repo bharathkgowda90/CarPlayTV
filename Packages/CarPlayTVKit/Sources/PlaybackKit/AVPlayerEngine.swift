@@ -76,6 +76,10 @@ public final class AVPlayerEngine: PlaybackEngine {
         resetTracks()
     }
 
+    public func setVolume(_ volume: Float) {
+        player.volume = min(1, max(0, volume))
+    }
+
     public func selectAudioTrack(id: String) {
         guard let item = player.currentItem, let option = audioOptions[id],
               let group = audibleGroup else { return }

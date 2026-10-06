@@ -1,7 +1,9 @@
 import Foundation
 import LibraryKit
+import MirrorKit
 import Observation
 import PlaybackKit
+import ReceiverKit
 import SafetyKit
 import SourcesKit
 
@@ -30,6 +32,16 @@ final class AppModel {
     private(set) var health: [String: StreamHealth] = [:]
     var isCarConnected = false
 
+    /// Running UPnP/DLNA receiver, if Receive is on.
+    var receiver: MediaRendererService?
+    var receiverError: String?
+    let activity = CastActivityController()
+
+    /// Screen mirroring from the broadcast extension.
+    let mirror = MirrorReceiver()
+    var isMirroring = false
+    var mirrorError: String?
+
     /// Folder for imported videos. It's in Documents so it also shows in the Files app.
     let localVideosDirectory: URL
 
@@ -52,6 +64,7 @@ final class AppModel {
         player.onProgress = { [weak self] channel, position, duration in
             self?.library.recordProgress(for: channel, position: position, duration: duration)
         }
+        startMirrorListener()
     }
 
     // MARK: - Loading

@@ -78,6 +78,12 @@ final class VLCEngine: PlaybackEngine {
         mediaPlayer.media = nil
     }
 
+    func setVolume(_ volume: Float) {
+        // `as VLCAudio?` works whether VLCKit declares `audio` optional or not.
+        guard let audio = mediaPlayer.audio as VLCAudio? else { return }
+        audio.volume = Int32(min(1, max(0, volume)) * 100)
+    }
+
     func selectAudioTrack(id: String) {
         guard let index = Int32(id) else { return }
         mediaPlayer.currentAudioTrackIndex = index
