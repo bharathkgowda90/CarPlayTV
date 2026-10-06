@@ -8,26 +8,24 @@ Status: draft v1 (pre-code). UI design is deferred; this covers capabilities, ar
 
 ---
 
-## 1. The hard constraint first: how video gets onto a CarPlay screen
+## 1. How video gets onto a CarPlay screen
 
-Apple's public CarPlay framework only allows **template-based UIs** (lists, grids, now-playing, etc.)
-for audio, communication, EV charging, parking, food ordering, etc. **No public CarPlay app category
-allows drawing arbitrary video.** This decides everything else, so it is Phase 0.
+See `docs/CARTV_ANALYSIS.md` for the research. Summary: **CarTV is an App Store app** and has three
+routes onto the car screen: **Direct** (own sources), **Receive** (UPnP/DLNA renderer) and **Mirror**
+(ReplayKit). Video is "drawn in the CarPlay window". That points to a **CarPlay navigation entitlement**
+whose `CPWindow` is filled with a video layer instead of a map (not yet confirmed — check the IPA's entitlements).
 
 | Path | How it works | Distribution | Verdict |
 |---|---|---|---|
-| **A. Navigation-entitlement canvas** | `com.apple.developer.carplay-maps` gives a `CPWindow` you can draw any `UIView` into (incl. `AVPlayerLayer`). | Entitlement must be granted by Apple; a video app will be refused / rejected in review. Works in the Xcode CarPlay Simulator for development. | Good for **prototyping**, not for App Store. |
-| **B. Private CarPlay APIs** | Use private CarKit/CARSession + external screen APIs with private entitlements. | Only installable via **TrollStore / jailbreak** (arbitrary entitlements). Fragile across iOS versions. | How most existing "CarTV"-type apps work. Niche audience. |
-| **C. Official AirPlay-while-parked (iOS 26+)** | Apple added AirPlay video to CarPlay while parked on supported vehicles. App just supports AirPlay (`AVPlayer.allowsExternalPlayback`, `AVRoutePickerView`). | **App Store-compliant.** | Limited to supported cars and parked state, but zero policy risk. |
-| **D. Audio-only CarPlay app** | Standard CarPlay audio entitlement; video plays on phone, audio + now-playing on car. | App Store-compliant. | Fallback / "driving mode". |
+| **A. Navigation-entitlement canvas (CarTV's approach)** | `com.apple.developer.carplay-maps` gives a `CPWindow`; put `AVPlayerLayer` / `AVSampleBufferDisplayLayer` in it, with `CPMapTemplate` buttons on top. | App Store (CarTV-type apps are live), but Apple could reject or remove the app for misusing the entitlement. Works in the Xcode CarPlay Simulator. | **Primary**, for CarTV parity on all CarPlay cars, iOS 18+. |
+| **B. Official CarPlay video app (iOS 27+)** | `com.apple.developer.carplay-video` + AirPlay video; parked only; supported vehicles; `CPPlaybackConfiguration`, MiniPlayer. | App Store, sanctioned by Apple. | **Add alongside A**: low risk, but only on supported cars. |
+| **C. Audio-only CarPlay app** | `com.apple.developer.carplay-audio`; audio + now-playing on the car. | App Store. | Always-on fallback, used while driving. |
+| D. Private APIs / TrollStore | Private CarKit APIs. | Sideload only. | **Dropped** — not needed. |
 
-**Recommendation:** build one codebase with a pluggable **`CarDisplayBackend`** layer:
-- `TemplateBackend` (D) — always on; browsing + audio + now-playing via CarPlay templates.
-- `CanvasBackend` (A/B) — full-screen video/mirroring; compiled in a separate "sideload" build flavour.
-- `AirPlayBackend` (C) — route video via AirPlay where the car supports it.
-
-Ship two flavours from the same source: **App Store build** (C + D) and **Sideload build** (A/B + C + D).
-Decide distribution target before Phase 2 (see §9 open questions).
+**Recommendation:** a single App Store build with a pluggable **`CarDisplayBackend`**:
+`NavCanvasBackend` (A), `CarPlayVideoBackend` (B, iOS 27+), `AudioBackend` (C). Phase 0 confirms CarTV's
+entitlement and gets video rendering in the CarPlay Simulator. Apply for the CarPlay entitlements early,
+because Apple's approval takes weeks.
 
 ---
 
@@ -45,6 +43,9 @@ Decide distribution target before Phase 2 (see §9 open questions).
 6. **Phone-as-remote** — the phone shows controls (play/pause, seek, volume, playlist, trackpad
    cursor for the web browser) while video shows on the car.
 7. **Safety / driving lock** — video hidden when the car is moving; audio continues (see §4).
+8. **Receive (DLNA/UPnP MediaRenderer)** — SSDP + AVTransport/RenderingControl/ConnectionManager so
+   Plex, Infuse, VLC, Bilibili etc. can cast to the car. (Google Cast/YouTube is not possible — use Mirror.)
+9. **Live Activity** on the Lock Screen while casting/mirroring; free-tier limits + Pro paywall.
 
 ### 2.2 Phase-2 features
 - Media servers: **Plex, Jellyfin, Emby**, DLNA/UPnP, SMB/WebDAV network shares.
@@ -64,8 +65,8 @@ Decide distribution target before Phase 2 (see §9 open questions).
 ## 3. Architecture
 
 **Stack:** Swift 6, SwiftUI (phone UI), UIKit (car canvas), AVFoundation, CarPlay framework, Swift
-Concurrency, SwiftData (or GRDB) for persistence. Min iOS: 16 (CarPlay scene APIs); AirPlay-to-car
-features gated to iOS 26+. Fallback decoder for non-native containers: **VLCKit** (MobileVLCKit) or
+Concurrency, SwiftData (or GRDB) for persistence. Min iOS: 18 (same as CarTV); official CarPlay video
+entitlement features gated to iOS 27+. Fallback decoder for non-native containers: **VLCKit** (MobileVLCKit) or
 **KSPlayer/FFmpeg** — evaluated in Phase 0.
 
 ```
@@ -89,8 +90,8 @@ Key design rules:
   `CarDisplayBackend` is active hosts that layer (car canvas, AirPlay route, or phone).
 - **Single source of truth** for playback state (`@Observable` store) shared by phone UI, CarPlay
   templates and `MPNowPlayingInfoCenter`.
-- **Feature flags per build flavour** so App Store builds never link private-API code
-  (separate target + `#if SIDELOAD` compile condition, not runtime checks).
+- **Each display backend sits behind a feature flag** (plus `#available` checks for iOS 27), so an App Review
+  problem with one path doesn't block a release.
 
 ### 3.1 Car canvas specifics
 - Car screens vary (800×480 → 1920×720 ultra-wide, different scale factors); layout must adapt to
@@ -145,13 +146,13 @@ ReplayKit broadcast extension (≈50 MB memory cap) → receive `CMSampleBuffer`
 
 | Phase | Goal | Deliverables | Exit criteria |
 |---|---|---|---|
-| **0. Feasibility spike** (1–2 wk) | De-risk §1 | Minimal app showing `AVPlayer` on CarPlay Simulator via nav-entitlement canvas; evaluate private-API path on a TrollStore device (if sideload chosen); AirPlay-to-car test; decoder choice (VLCKit vs FFmpeg). | Video renders on car display in chosen path(s); distribution decision made. |
+| **0. Feasibility spike** (1–2 wk) | De-risk §1 | Check CarTV's entitlements from its IPA; minimal app showing `AVPlayer` in a `CPWindow` on the CarPlay Simulator; ReplayKit frames → car window prototype; decoder choice (VLCKit vs KSPlayer); file CarPlay entitlement requests with Apple. | Video renders on the simulated car display; entitlements requested. |
 | **1. Foundation** (2 wk) | Skeleton | Xcode project, SPM packages, both build flavours, CI (GitHub Actions: build + tests), `CarDisplayBackend` + TemplateBackend, PlaybackKit basics, persistence. | App launches on phone + CarPlay sim; audio now-playing works. |
 | **2. Core playback** (3 wk) | MVP sources | URL streams, local files, IPTV (M3U + Xtream + EPG), favourites/history, phone-as-remote, CanvasBackend video, DriveStateMonitor. | Watch an IPTV channel on car while parked; auto-locks when driving. |
 | **3. Browser & mirroring** (3 wk) | CarTV parity | Car-rendered web browser with trackpad remote; ReplayKit mirroring pipeline. | YouTube in browser and full-screen mirroring work on the car screen. |
 | **4. UI design & polish** (2–3 wk) | Design pass | Phone + car UI design, onboarding, settings, subtitles/tracks, aspect modes. | Usability test on real head unit. |
 | **5. Extensions** (3 wk) | Phase-2 features | Plex/Jellyfin/DLNA, Siri/Shortcuts, widgets, PiP, profiles/PIN. | Feature-complete beta. |
-| **6. Release** (1–2 wk) | Ship | TestFlight (App Store flavour) / signed IPA + AltStore/TrollStore source (sideload flavour), docs, privacy manifest. | Public release. |
+| **6. Release** (1–2 wk) | Ship | TestFlight beta, App Review notes explaining the parked-only behaviour, privacy manifest, localizations. | Public App Store release. |
 
 Rough total: ~15–18 weeks for one iOS developer.
 
@@ -159,7 +160,7 @@ Rough total: ~15–18 weeks for one iOS developer.
 
 ## 8. Prerequisites
 - Mac with Xcode 26+, a paid Apple Developer account.
-- iPhone for testing; ideally a TrollStore-compatible device if going the sideload route.
+- iPhone for testing (iOS 18+, plus one on iOS 27 for the official video entitlement).
 - A CarPlay head unit (or a car) for real-hardware testing.
 - Note: this repo is being worked on from a Linux cloud environment — Swift/iOS builds and the CarPlay
   Simulator need macOS, so builds will run on a Mac or macOS CI runners (GitHub Actions `macos-*`).
@@ -167,8 +168,8 @@ Rough total: ~15–18 weeks for one iOS developer.
 ---
 
 ## 9. Open questions for you
-1. **Distribution:** App Store (AirPlay-while-parked + audio only), sideload/TrollStore (full CarTV
-   parity), or both flavours?
+1. **Review risk:** OK to follow CarTV's navigation-canvas approach (with an App Store rejection risk), or launch
+   with only the official iOS 27 video entitlement + audio, and add the canvas later?
 2. Which exact features of CarTV are must-haves for v1 (browser, IPTV, mirroring, local files, media
    servers)?
 3. Minimum iOS version and target devices?
