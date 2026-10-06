@@ -10,7 +10,7 @@ struct CarPlayTVApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .environment(AppModel.shared)
         }
     }

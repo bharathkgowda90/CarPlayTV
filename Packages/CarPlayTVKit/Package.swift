@@ -18,6 +18,7 @@ let package = Package(
         .testTarget(name: "SourcesKitTests", dependencies: ["SourcesKit"]),
         .testTarget(name: "SafetyKitTests", dependencies: ["SafetyKit"]),
         .testTarget(name: "LibraryKitTests", dependencies: ["LibraryKit", "SourcesKit"]),
+        .testTarget(name: "PlaybackKitTests", dependencies: ["PlaybackKit"]),
     ],
     swiftLanguageModes: [.v5]
 )

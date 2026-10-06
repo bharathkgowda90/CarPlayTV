@@ -14,6 +14,9 @@ settings:
 packages:
   CarPlayTVKit:
     path: Packages/CarPlayTVKit
+  VLCKitSPM:
+    url: https://github.com/tylerjonesio/vlckit-spm
+    exactVersion: 3.6.0
 
 targets:
   CarPlayTV:
@@ -28,6 +31,10 @@ targets:
         product: PlaybackKit
       - package: CarPlayTVKit
         product: SafetyKit
+      - package: CarPlayTVKit
+        product: LibraryKit
+      - package: VLCKitSPM
+        product: VLCKitSPM
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bharathkgowda.carplaytv
@@ -50,6 +57,23 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes: [audio]
         NSLocationWhenInUseUsageDescription: CarPlayTV uses your speed, on this iPhone only, to pause video on the car display while the car is moving.
+        NSLocalNetworkUsageDescription: CarPlayTV connects to media servers on your network and lets other apps cast video to it.
+        NSPhotoLibraryUsageDescription: CarPlayTV imports the videos you choose so you can play them offline.
+        # IPTV and home media servers are commonly plain HTTP.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsArbitraryLoadsForMedia: true
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Playlist
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.m3u-playlist]
+          - CFBundleTypeName: Video
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.movie, public.mpeg-4, com.apple.quicktime-movie, org.matroska.mkv, public.avi]
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations:

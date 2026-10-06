@@ -1,4 +1,5 @@
 import Observation
+import PlaybackKit
 import UIKit
 
 /// Root view controller of the CarPlay window: full-screen video, plus a message when
@@ -6,8 +7,9 @@ import UIKit
 @MainActor
 final class VideoCanvasViewController: UIViewController {
     private let model: AppModel
-    private lazy var playerView = PlayerLayerView(player: model.player.player)
+    private let videoHost = VideoHostView(priority: 10)
     private let messageLabel = UILabel()
+    private let spinner = UIActivityIndicatorView(style: .large)
 
     init(model: AppModel) {
         self.model = model
@@ -22,9 +24,10 @@ final class VideoCanvasViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .black
 
-        playerView.frame = view.bounds
-        playerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        view.addSubview(playerView)
+        videoHost.frame = view.bounds
+        videoHost.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(videoHost)
+        model.player.register(videoHost)
 
         messageLabel.textColor = .white
         messageLabel.font = .systemFont(ofSize: 22, weight: .semibold)
@@ -32,14 +35,25 @@ final class VideoCanvasViewController: UIViewController {
         messageLabel.numberOfLines = 0
         messageLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(messageLabel)
+
+        spinner.color = .white
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(spinner)
+
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
             messageLabel.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
             messageLabel.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
             messageLabel.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
+            spinner.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
         ])
 
         observeState()
+    }
+
+    func tearDown() {
+        model.player.unregister(videoHost)
     }
 
     private func observeState() {
@@ -51,21 +65,24 @@ final class VideoCanvasViewController: UIViewController {
     }
 
     private func render() {
+        let player = model.player
         let videoAllowed = model.driveMonitor.isVideoAllowed
-        // Hiding the layer stops video on the car screen; the player keeps playing audio.
-        playerView.isHidden = !videoAllowed
+        // Hiding the surface stops video on the car screen; the player keeps playing audio.
+        videoHost.isHidden = !videoAllowed
 
         let message: String?
         if !videoAllowed {
             message = "Video paused while driving.\nAudio keeps playing."
-        } else if let error = model.player.errorMessage {
+        } else if let error = player.errorMessage {
             message = error
-        } else if model.player.currentChannel == nil {
-            message = "Tap Channels, or pick something on your iPhone."
+        } else if player.currentChannel == nil {
+            message = "Tap Browse, or pick something on your iPhone."
         } else {
             message = nil
         }
         messageLabel.text = message
         messageLabel.isHidden = message == nil
+
+        if player.isLoading && videoAllowed { spinner.startAnimating() } else { spinner.stopAnimating() }
     }
 }
