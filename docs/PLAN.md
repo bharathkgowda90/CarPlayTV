@@ -1,12 +1,29 @@
 # CarPlayTV — Product & Technical Plan
 
-Status: v2. Phase 0 started: navigation-canvas prototype in `App/`, shared modules in `Packages/CarPlayTVKit`. UI design is deferred; this covers capabilities, architecture, risks and phasing.
+Status: v3 (2026-10-06). Phases 0–3 and most of Phase 5 are built and passing CI (see "Build status" below). UI design is deferred; this covers capabilities, architecture, risks and phasing.
 
 > Note on reference app: "CarTV"-style apps play video and mirror the phone on the CarPlay screen.
 > The feature list below is the typical capability set for that category. Before Phase 1, confirm it
 > against the exact app you want to match (screenshots or a feature list), and adjust scope.
 
 ---
+
+## Build status
+
+**Done (compiles and passes tests on CI; not yet tried on a real car):**
+- Car display via navigation canvas; CarPlay Browse lists; playback buttons; driving lock
+- Sources: M3U (link, file, QR scan), Xtream Codes (live/movies/series), Jellyfin, Emby, local videos (Files/Photos)
+- Library: favorites, Continue Watching/resume, search, background health checks with latency
+- Player: hardware + VLCKit fallback, multi-line channels, tracks, external subtitles + delay, Now Playing
+- Receive (DLNA renderer), Mirror (ReplayKit extension), Live Activity with Stop
+- Pro via StoreKit 2 with free-tier limits; privacy manifest; acknowledgements
+
+**Remaining:**
+- Phase 4 UI design (icon, visual design, Car Mode landscape layout for a dashboard mount)
+- Localizations
+- Official iOS 27 CarPlay video mode (needs Xcode 27 on CI)
+- Optional: EPG/TV guide, Plex
+- Real-device and real-car testing; App Store setup (`docs/APP_STORE.md`)
 
 ## 1. How video gets onto a CarPlay screen
 
