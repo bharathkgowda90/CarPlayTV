@@ -1,35 +1,46 @@
 # CarPlayTV
 
-Video on the CarPlay display: your own M3U/IPTV playlists, media servers and local files, with
-casting and screen mirroring to come. See `docs/PLAN.md` for the plan and `docs/CARTV_ANALYSIS.md`
-for how the reference app (CarTV) works.
+Video on the CarPlay display, from sources you already have. A player only: it ships with no content.
 
-**For passenger use only. Video is paused on the car display while the car is moving.**
+**For passenger use only. Video on the car display pauses while the car is moving; audio keeps playing.**
+
+## Features
+| Area | What's there |
+|---|---|
+| **Direct** (your sources) | M3U/M3U8 playlists (link, Files, "Open in"), Xtream Codes (live, movies, series), Jellyfin, Emby, local videos imported from Files/Photos |
+| **Receive** | UPnP/DLNA MediaRenderer — Plex, Emby, Infuse, VLC, Bilibili etc. can cast to the car |
+| **Mirror** | ReplayKit broadcast extension puts the whole iPhone screen on the car display (any app) |
+| Playback | Hardware decoding with automatic VLCKit software fallback (MKV, HEVC, DTS, AVI…), multi-line channels with auto line switching, resume, audio/subtitle tracks, external .srt/.vtt with timing offset, fit/fill |
+| Library | Groups, search, favorites, Continue Watching, background channel health checks with latency, hide offline channels |
+| CarPlay | Full-screen video in the car window; Browse lists for sources, groups, series; playback buttons; mirroring view |
+| System | Lock Screen / car Now Playing + remote commands, Live Activity with Stop while casting/mirroring |
+| Pro | StoreKit 2 monthly or lifetime; free tier = 1 source + 15 min casting/mirroring per session |
+| Safety | Speed-based driving lock, first-launch passengers-only notice |
 
 ## How it reaches the car screen
-Like CarTV, the app uses the CarPlay **navigation** entitlement (`com.apple.developer.carplay-maps`).
-That gives a `CPWindow` the app can draw into; we put an `AVPlayerLayer` there instead of a map, and a
-`CPMapTemplate` on top supplies the buttons (previous / play-pause / next, Channels, Line).
+Like CarTV, the app uses the CarPlay **navigation** entitlement. That gives a `CPWindow` the app draws
+into; we put the video (or mirrored screen) there, and a `CPMapTemplate` on top supplies the buttons.
+See `docs/CARTV_ANALYSIS.md`. The official iOS 27 CarPlay video mode is planned as an added feature (`docs/PLAN.md`, Phase 5).
 
 ## Layout
 | Path | What |
 |---|---|
 | `project.yml` | XcodeGen spec (the `.xcodeproj` is generated, not committed) |
-| `App/Phone` | SwiftUI iPhone app (placeholder UI until the design phase) |
-| `App/CarPlay` | CarPlay scene delegate + video canvas for the car window |
-| `App/Shared` | `AppModel` (state shared by both scenes), player layer view |
-| `Packages/CarPlayTVKit` | `SourcesKit` (M3U parser, loader), `PlaybackKit` (AVPlayer controller), `SafetyKit` (driving lock) |
+| `App/Phone` | SwiftUI iPhone screens (functional; visual design pass comes later) |
+| `App/CarPlay` | CarPlay scene delegate, video canvas, browse templates |
+| `App/Shared` | `AppModel` and extensions (receiver, mirror), VLC engine, Pro store, Live Activity |
+| `BroadcastExtension` | ReplayKit screen-mirroring extension |
+| `Widgets` | Live Activity widget extension |
+| `Packages/CarPlayTVKit` | `SourcesKit`, `LibraryKit`, `PlaybackKit`, `SafetyKit`, `ReceiverKit`, `MirrorKit` (+ unit tests) |
 
-## Run it (needs a Mac)
+## Run it (needs a Mac with Xcode 26+)
 1. `brew install xcodegen`, then `xcodegen generate` in the repo root.
-2. Open `CarPlayTV.xcodeproj`, pick your team under Signing & Capabilities, run on an iPhone simulator.
-3. In Simulator: **I/O → External Displays → CarPlay**. Open CarPlayTV on the car screen.
-4. On the phone, load a playlist or paste a stream URL, e.g. Apple's test stream
-   `https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8`.
+2. Open `CarPlayTV.xcodeproj`, pick your team for all three targets, run on an iPhone simulator.
+3. In Simulator: **I/O → External Displays → CarPlay**, then open CarPlayTV on the car screen.
+4. Add a source, e.g. Apple's test stream as a playlist link:
+   `https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8`
 5. Test the driving lock with **Features → Location → Freeway Drive**.
 
-Package tests: `swift test --package-path Packages/CarPlayTVKit`.
+Package tests: `swift test --package-path Packages/CarPlayTVKit`. CI (GitHub Actions, macOS) runs the tests and builds the app on every push.
 
-### On a real iPhone + car
-The navigation entitlement must be granted to your Apple Developer team by Apple
-(request it at developer.apple.com/carplay). Until then, use the CarPlay Simulator.
+Real devices need Apple-granted entitlements — see `docs/APP_STORE.md`.
