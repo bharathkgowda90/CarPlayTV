@@ -188,6 +188,7 @@ struct SourceEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State var draft: SourceDraft
     @State private var isSaving = false
+    @State private var isScanning = false
 
     var body: some View {
         NavigationStack {
@@ -198,6 +199,9 @@ struct SourceEditor: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    if QRScannerView.isAvailable {
+                        Button { isScanning = true } label: { Label("Scan QR code", systemImage: "qrcode.viewfinder") }
+                    }
                 }
                 if draft.needsLogin {
                     Section {
@@ -210,6 +214,13 @@ struct SourceEditor: View {
                 if let error = model.contents.first(where: { $0.source.id == draft.id })?.error {
                     Section { Text(error).foregroundStyle(.red) }
                 }
+            }
+            .sheet(isPresented: $isScanning) {
+                QRScannerView { value in
+                    draft.address = value
+                    isScanning = false
+                }
+                .ignoresSafeArea()
             }
             .navigationTitle(draft.isNew ? "Add \(draft.title)" : draft.title)
             .navigationBarTitleDisplayMode(.inline)

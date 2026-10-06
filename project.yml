@@ -68,6 +68,7 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: CarPlayTV uses your speed, on this iPhone only, to pause video on the car display while the car is moving.
         NSLocalNetworkUsageDescription: CarPlayTV connects to media servers on your network and lets other apps cast video to it.
+        NSCameraUsageDescription: CarPlayTV uses the camera to scan QR codes that contain playlist links.
         NSPhotoLibraryUsageDescription: CarPlayTV imports the videos you choose so you can play them offline.
         # IPTV and home media servers are commonly plain HTTP.
         NSAppTransportSecurity:
