@@ -31,6 +31,7 @@ extension AppModel: MediaRendererDelegate {
         if player.currentChannel?.group == "Cast" { player.stop() }
         stopReceiver()
         stopMirroring()
+        castingSessionEnded()
     }
 
     // MARK: - MediaRendererDelegate
@@ -46,6 +47,7 @@ extension AppModel: MediaRendererDelegate {
         )
         play(channel)
         activity.castStarted(title: channel.name)
+        castingSessionStarted()
     }
 
     func rendererPlay() { player.resume() }
@@ -54,6 +56,7 @@ extension AppModel: MediaRendererDelegate {
     func rendererStop() {
         player.stop()
         activity.end()
+        castingSessionEnded()
     }
 
     func renderer(seekTo seconds: Double) { player.seek(to: seconds) }

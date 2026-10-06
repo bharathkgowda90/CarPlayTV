@@ -76,7 +76,8 @@ final class ReceiverKitTests: XCTestCase {
             "InstanceID": "0", "CurrentURI": "http://h/v.mp4",
             "CurrentURIMetaData": "<DIDL-Lite><item><dc:title>Clip</dc:title></item></DIDL-Lite>",
         ])
-        XCTAssertNotNil(await service.avTransport(set))
+        let setResult = await service.avTransport(set)
+        XCTAssertNotNil(setResult)
         XCTAssertEqual(player.loaded, URL(string: "http://h/v.mp4"))
         XCTAssertEqual(player.title, "Clip")
 
@@ -84,16 +85,19 @@ final class ReceiverKitTests: XCTestCase {
         XCTAssertEqual(player.seekedTo, 90)
 
         player.status = RendererStatus(state: .playing, position: 95, duration: 600)
-        let info = try XCTUnwrap(await service.avTransport(SOAPRequest(action: "GetPositionInfo", arguments: [:])))
+        let infoResult = await service.avTransport(SOAPRequest(action: "GetPositionInfo", arguments: [:]))
+        let info = try XCTUnwrap(infoResult)
         let values = Dictionary(uniqueKeysWithValues: info)
         XCTAssertEqual(values["RelTime"], "0:01:35")
         XCTAssertEqual(values["TrackDuration"], "0:10:00")
         XCTAssertEqual(values["TrackURI"], "http://h/v.mp4")
 
-        let transport = try XCTUnwrap(await service.avTransport(SOAPRequest(action: "GetTransportInfo", arguments: [:])))
+        let transportResult = await service.avTransport(SOAPRequest(action: "GetTransportInfo", arguments: [:]))
+        let transport = try XCTUnwrap(transportResult)
         XCTAssertEqual(Dictionary(uniqueKeysWithValues: transport)["CurrentTransportState"], "PLAYING")
 
-        XCTAssertNil(await service.avTransport(SOAPRequest(action: "Bogus", arguments: [:])))
+        let bogus = await service.avTransport(SOAPRequest(action: "Bogus", arguments: [:]))
+        XCTAssertNil(bogus)
     }
 }
 

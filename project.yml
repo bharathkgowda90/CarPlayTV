@@ -65,6 +65,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes: [audio]
         NSSupportsLiveActivities: true
+        ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: CarPlayTV uses your speed, on this iPhone only, to pause video on the car display while the car is moving.
         NSLocalNetworkUsageDescription: CarPlayTV connects to media servers on your network and lets other apps cast video to it.
         NSPhotoLibraryUsageDescription: CarPlayTV imports the videos you choose so you can play them offline.

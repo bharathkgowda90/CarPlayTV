@@ -13,8 +13,10 @@ extension AppModel {
                 // The mirrored app brings its own audio; pause ours.
                 self.player.pause()
                 self.activity.mirroringStarted()
+                self.castingSessionStarted()
             } else {
                 self.activity.end()
+                self.castingSessionEnded()
             }
         }
         do {

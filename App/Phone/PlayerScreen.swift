@@ -188,7 +188,11 @@ struct PlayerScreen: View {
             }
             if let subtitleError { Text(subtitleError).font(.caption).foregroundStyle(.red) }
 
-            if player.externalSubtitleName != nil {
+            if player.externalSubtitleName != nil && !model.pro.isPro {
+                Button("Adjust subtitle timing (Pro)") {
+                    model.paywallReason = "Subtitle timing adjustment is part of CarPlayTV Pro."
+                }
+            } else if player.externalSubtitleName != nil {
                 Stepper(value: Binding(get: { player.subtitleOffset }, set: { player.subtitleOffset = $0 }),
                         in: -30...30, step: 0.25) {
                     Text("Subtitle delay: \(player.subtitleOffset, specifier: "%+.2f") s")

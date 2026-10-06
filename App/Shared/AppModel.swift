@@ -23,6 +23,7 @@ final class AppModel {
     static let shared = AppModel()
 
     let settings = AppSettings()
+    let pro = ProStore()
     let library: LibraryStore
     let player = PlayerController()
     let driveMonitor = DriveStateMonitor()
@@ -41,6 +42,11 @@ final class AppModel {
     let mirror = MirrorReceiver()
     var isMirroring = false
     var mirrorError: String?
+
+    /// Set when a free-tier limit is hit; the UI shows the paywall with this reason.
+    var paywallReason: String?
+    @ObservationIgnored var castingStartedAt: Date?
+    @ObservationIgnored private var castingLimitTimer: Timer?
 
     /// Folder for imported videos. It's in Documents so it also shows in the Files app.
     let localVideosDirectory: URL
@@ -120,6 +126,35 @@ final class AppModel {
             change(&content)
             contents.append(content)
         }
+    }
+
+    // MARK: - Pro limits
+
+    var canAddSource: Bool {
+        pro.isPro || library.sources.count < ProStore.freeSourceLimit
+    }
+
+    /// Starts the free-tier timer for a casting or mirroring session.
+    func castingSessionStarted() {
+        guard !pro.isPro else { return }
+        if castingStartedAt == nil { castingStartedAt = Date() }
+        castingLimitTimer?.invalidate()
+        let remaining = max(1, ProStore.freeCastingSeconds - Date().timeIntervalSince(castingStartedAt ?? Date()))
+        castingLimitTimer = Timer.scheduledTimer(withTimeInterval: remaining, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.castingLimitReached() }
+        }
+    }
+
+    func castingSessionEnded() {
+        castingLimitTimer?.invalidate()
+        castingLimitTimer = nil
+        castingStartedAt = nil
+    }
+
+    private func castingLimitReached() {
+        guard !pro.isPro else { return }
+        stopCasting()
+        paywallReason = "The free version casts and mirrors for 15 minutes per session. Upgrade for unlimited time."
     }
 
     // MARK: - Sources

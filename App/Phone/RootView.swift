@@ -21,7 +21,11 @@ struct RootView: View {
                     .padding(.bottom, 56)
             }
         }
-        .fullScreenCover(isPresented: $showPlayer) { PlayerScreen() }
+        .fullScreenCover(isPresented: $showPlayer) {
+            PlayerScreen()
+                .sheet(isPresented: paywallBinding) { PaywallView(reason: model.paywallReason) }
+        }
+        .sheet(isPresented: paywallBinding) { PaywallView(reason: model.paywallReason) }
         .sheet(isPresented: .constant(!model.settings.hasAcceptedSafetyNotice)) { SafetyNoticeView() }
         .task { await model.reloadAll() }
         .onOpenURL(perform: open)
@@ -33,6 +37,10 @@ struct RootView: View {
         } message: {
             Text(openError ?? "")
         }
+    }
+
+    private var paywallBinding: Binding<Bool> {
+        Binding(get: { model.paywallReason != nil }, set: { if !$0 { model.paywallReason = nil } })
     }
 
     /// Handles .m3u playlists and video files opened from Files or shared from other apps.

@@ -26,13 +26,21 @@ struct SourcesView: View {
                     .onDelete { offsets in
                         for index in offsets { model.removeSource(model.library.sources[index]) }
                     }
-                    Menu {
-                        Button("M3U / M3U8 playlist link") { editing = SourceDraft(kind: .m3u) }
-                        Button("Xtream Codes account") { editing = SourceDraft(kind: .xtream) }
-                        Button("Jellyfin server") { editing = SourceDraft(kind: .jellyfin) }
-                        Button("Emby server") { editing = SourceDraft(kind: .emby) }
-                    } label: {
-                        Label("Add source", systemImage: "plus")
+                    if model.canAddSource {
+                        Menu {
+                            Button("M3U / M3U8 playlist link") { editing = SourceDraft(kind: .m3u) }
+                            Button("Xtream Codes account") { editing = SourceDraft(kind: .xtream) }
+                            Button("Jellyfin server") { editing = SourceDraft(kind: .jellyfin) }
+                            Button("Emby server") { editing = SourceDraft(kind: .emby) }
+                        } label: {
+                            Label("Add source", systemImage: "plus")
+                        }
+                    } else {
+                        Button {
+                            model.paywallReason = "The free version includes one source. Upgrade to add more."
+                        } label: {
+                            Label("Add source", systemImage: "plus")
+                        }
                     }
                 } header: {
                     Text("Your sources")
