@@ -8,13 +8,16 @@ let package = Package(
         .library(name: "SourcesKit", targets: ["SourcesKit"]),
         .library(name: "PlaybackKit", targets: ["PlaybackKit"]),
         .library(name: "SafetyKit", targets: ["SafetyKit"]),
+        .library(name: "LibraryKit", targets: ["LibraryKit"]),
     ],
     targets: [
         .target(name: "SourcesKit"),
         .target(name: "PlaybackKit", dependencies: ["SourcesKit"]),
         .target(name: "SafetyKit"),
+        .target(name: "LibraryKit", dependencies: ["SourcesKit"]),
         .testTarget(name: "SourcesKitTests", dependencies: ["SourcesKit"]),
         .testTarget(name: "SafetyKitTests", dependencies: ["SafetyKit"]),
+        .testTarget(name: "LibraryKitTests", dependencies: ["LibraryKit", "SourcesKit"]),
     ],
     swiftLanguageModes: [.v5]
 )

@@ -7,7 +7,7 @@ import UIKit
 /// draw into (normally a map). We put the video canvas there, and a transparent
 /// `CPMapTemplate` on top supplies the on-screen buttons.
 @MainActor
-final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
+final class CarPlaySceneDelegate: UIResponder, @preconcurrency CPTemplateApplicationSceneDelegate {
     private let model = AppModel.shared
     private var interfaceController: CPInterfaceController?
     private var carWindow: CPWindow?
