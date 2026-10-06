@@ -1,0 +1,59 @@
+name: CarPlayTV
+options:
+  bundleIdPrefix: com.bharathkgowda
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  CarPlayTVKit:
+    path: Packages/CarPlayTVKit
+
+targets:
+  CarPlayTV:
+    type: application
+    platform: iOS
+    sources: [App]
+    scheme: {}
+    dependencies:
+      - package: CarPlayTVKit
+        product: SourcesKit
+      - package: CarPlayTVKit
+        product: PlaybackKit
+      - package: CarPlayTVKit
+        product: SafetyKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bharathkgowda.carplaytv
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+    entitlements:
+      path: App/CarPlayTV.entitlements
+      properties:
+        # CarPlay navigation entitlement: gives the app a drawable CPWindow on the car screen.
+        # Works in the Xcode CarPlay Simulator; on a real device Apple must grant it to the team.
+        com.apple.developer.carplay-maps: true
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: CarPlayTV
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes: [audio]
+        NSLocationWhenInUseUsageDescription: CarPlayTV uses your speed, on this iPhone only, to pause video on the car display while the car is moving.
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            CPTemplateApplicationSceneSessionRoleApplication:
+              - UISceneConfigurationName: CarPlay
+                UISceneClassName: CPTemplateApplicationScene
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
